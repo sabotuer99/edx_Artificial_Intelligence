@@ -99,9 +99,26 @@ def depthFirstSearch(problem):
     
     from game import Directions
     dirs = {"South": Directions.SOUTH, "North": Directions.NORTH, "East": Directions.EAST, "West": Directions.WEST}
+    revs = {"South": "North", "North": "South", "East": "West", "West": "East"}
+    
+    from util import Stack
+    fringe = Stack();
+    backtrack = "";
+    backState = problem.getStartState()
     
     while not problem.isGoalState(state) and i < 500:
-		nextState = succ[randint(0, len(succ)-1)]
+		"""put the successors for the current state on the stack, with the backtrack first"""
+
+		for state in succ:
+			if state[1] == backtrack:
+				fringe.push(state)
+			
+		for state in succ:
+			if not state[1] == backtrack:
+				fringe.push(state)
+				
+		nextState = fringe.pop();
+		backtrack = revs[nextState[1]]
 		steps.append(dirs[nextState[1]])
 		succ = problem.getSuccessors(nextState[0])
 		i += 1
