@@ -88,49 +88,72 @@ def depthFirstSearch(problem):
     print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
     "*** YOUR CODE HERE ***"
-    print "Start:", problem.getStartState()
-    print "Is the start a goal?", problem.isGoalState(problem.getStartState())
-    succ = problem.getSuccessors(problem.getStartState())
-    print "Start's successors:", succ
-    
-    state = problem.getStartState()
-    steps = list()
-    i = 0
-    
-    from game import Directions
-    dirs = {"South": Directions.SOUTH, "North": Directions.NORTH, "East": Directions.EAST, "West": Directions.WEST}
-    revs = {"South": "North", "North": "South", "East": "West", "West": "East"}
+
+    start = problem.getStartState()
     
     from util import Stack
-    fringe = Stack();
-    backtrack = "";
-    backState = problem.getStartState()
+    fringe = Stack()
+    fringe.push([(start, 'Start', 1)])
     
-    while not problem.isGoalState(state) and i < 500:
-		"""put the successors for the current state on the stack, with the backtrack first"""
-
-		for state in succ:
-			if state[1] == backtrack:
-				fringe.push(state)
-			
-		for state in succ:
-			if not state[1] == backtrack:
-				fringe.push(state)
-				
-		nextState = fringe.pop();
-		backtrack = revs[nextState[1]]
-		steps.append(dirs[nextState[1]])
-		succ = problem.getSuccessors(nextState[0])
-		i += 1
+    result = None
+    
+    while result == None:
+		currentPath = fringe.pop()
+		currentState = currentPath[-1]
 		
-    return steps
-        
+		if problem.isGoalState(currentState[0]):
+			result = currentPath
+			continue
+		
+		succ = problem.getSuccessors(currentState[0])
+		
+		for state in succ:
+			if state[0] not in map(lambda x: x[0], currentPath):
+				new_list = currentPath[:]
+				new_list.append(state)
+				fringe.push(new_list)
     
+    steps = []
+    for state in result[1:]:
+		steps.append(state[1])
+    	
+    return steps  
+      
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    start = problem.getStartState()
+    
+    from util import Queue
+    fringe = Queue()
+    fringe.push([(start, 'Start', 1)])
+    
+    result = None
+    expanded = [problem.getStartState()]
+    
+    while result == None:
+		currentPath = fringe.pop()
+		currentState = currentPath[-1]
+		
+		if problem.isGoalState(currentState[0]):
+			result = currentPath
+			continue
+		
+		succ = problem.getSuccessors(currentState[0])
+		
+		for state in succ:
+			if state[0] not in expanded:
+				expanded.append(state[0])
+				new_list = currentPath[:]
+				new_list.append(state)
+				fringe.push(new_list)
+    
+    steps = []
+    for state in result[1:]:
+		steps.append(state[1])
+    	
+    return steps  
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
