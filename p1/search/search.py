@@ -227,14 +227,14 @@ def aStarSearch(problem, heuristic=nullHeuristic):
 			result = currentPath
 			continue
 		
-		if currentState[0][0] in expanded:
+		if currentState[0][0] in expanded.keys():
 			succ = expanded[currentState[0][0]] 
 		else: 
 			succ = problem.getSuccessors(currentState[0][0])
 			expanded[currentState[0][0]] = succ
 		
 		for state in succ:
-			if state[0] not in expanded:			
+			if state[0] not in expanded.keys():			
 				new_cost = currentCost + state[2]
 				new_list = currentPath[:]
 				new_list.append([state, new_cost])
