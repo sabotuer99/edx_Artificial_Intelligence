@@ -317,9 +317,8 @@ class CornersProblem(search.SearchProblem):
             state, 'action' is the action required to get there, and 'stepCost'
             is the incremental cost of expanding to that successor
         """
-        nextGoal = state[1].copy() 
-        if state[0] in self.corners:
-            nextGoal[state[0]] = 1
+        
+        
         
         #print self.corners
         
@@ -338,6 +337,9 @@ class CornersProblem(search.SearchProblem):
             nextx, nexty = int(x + dx), int(y + dy)
             if not self.walls[nextx][nexty]:
                 nextLocation = (nextx, nexty)
+                nextGoal = state[1].copy() 
+                if nextLocation in self.corners:
+					nextGoal[nextLocation] = 1
                 
                 nextState = (nextLocation, nextGoal)
                 cost = 1 #self.costFn(nextLocation)
