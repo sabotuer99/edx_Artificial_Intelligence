@@ -158,7 +158,44 @@ def breadthFirstSearch(problem):
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    start = problem.getStartState()
+    
+    from util import PriorityQueue
+    fringe = PriorityQueue()
+    fringe.push([((start, 'Start', 1), 0)], 0)
+    
+    result = None
+    expanded = {}
+    
+    while result == None:
+		currentPath = fringe.pop()
+		currentState = currentPath[-1]
+		currentCost = currentState[1]
+		
+		#print currentPath
+		
+		if problem.isGoalState(currentState[0][0]):
+			result = currentPath
+			continue
+		
+		if currentState[0][0] in expanded:
+			succ = expanded[currentState[0][0]] 
+		else: 
+			succ = problem.getSuccessors(currentState[0][0])
+			expanded[currentState[0][0]] = succ
+		
+		for state in succ:
+			if state[0] not in expanded:			
+				new_cost = currentCost + state[2]
+				new_list = currentPath[:]
+				new_list.append([state, new_cost])
+				fringe.push(new_list, new_cost)
+    
+    steps = []
+    for state in result[1:]:
+		steps.append(state[0][1])
+    	
+    return steps 
 
 def nullHeuristic(state, problem=None):
     """
@@ -170,7 +207,44 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    start = problem.getStartState()
+    
+    from util import PriorityQueue
+    fringe = PriorityQueue()
+    fringe.push([((start, 'Start', 1), 0)], 0)
+    
+    result = None
+    expanded = {}
+    
+    while result == None:
+		currentPath = fringe.pop()
+		currentState = currentPath[-1]
+		currentCost = currentState[1]
+		
+		#print currentPath
+		
+		if problem.isGoalState(currentState[0][0]):
+			result = currentPath
+			continue
+		
+		if currentState[0][0] in expanded:
+			succ = expanded[currentState[0][0]] 
+		else: 
+			succ = problem.getSuccessors(currentState[0][0])
+			expanded[currentState[0][0]] = succ
+		
+		for state in succ:
+			if state[0] not in expanded:			
+				new_cost = currentCost + state[2]
+				new_list = currentPath[:]
+				new_list.append([state, new_cost])
+				fringe.push(new_list, new_cost + heuristic(state[0], problem))
+    
+    steps = []
+    for state in result[1:]:
+		steps.append(state[0][1])
+    	
+    return steps 
 
 
 # Abbreviations
