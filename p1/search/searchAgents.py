@@ -288,9 +288,7 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
-        self.eaten = {}
-        for corner in self.corners:
-			self.eaten[corner] = 0
+        #self.eaten = []
 
     def getStartState(self):
         """
@@ -298,17 +296,14 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        return (self.startingPosition, self.eaten.copy())
+        return (self.startingPosition, ())
 
     def isGoalState(self, state):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        print state
-        vals = state[1].values()
-        print vals
-        return 0 not in vals
+        return len(state[1]) == 4
 
     def getSuccessors(self, state):
         """
@@ -340,9 +335,9 @@ class CornersProblem(search.SearchProblem):
             nextx, nexty = int(x + dx), int(y + dy)
             if not self.walls[nextx][nexty]:
                 nextLocation = (nextx, nexty)
-                nextGoal = state[1].copy() 
-                if nextLocation in self.corners:
-					nextGoal[nextLocation] = 1
+                nextGoal = state[1][:] 
+                if nextLocation in self.corners and nextLocation not in state[1]:
+                  nextGoal = state[1][:] + (nextLocation,)
                 
                 nextState = (nextLocation, nextGoal)
                 cost = 1 #self.costFn(nextLocation)
@@ -379,20 +374,37 @@ def cornersHeuristic(state, problem):
     admissible (as well as consistent).
     """
     corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
-    
+    #walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+    result = 0
     dists = []
     
+    """
+    if len(state[1]) == 0:
+      currentPos = state[0]
+      for corner in corners:
+          if corner not in state[1]:
+              #( (xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2 ) ** 0.5
+              dists.append( abs(currentPos[0] - corner[0]) + abs(currentPos[1] - corner[1]) )
+              result = min(dists)
+    
+    else:"""
+    
     currentPos = state[0]
-    for corner in state[1]:
-		if state[1][corner] == 0:
-			manDist = abs(currentPos[0] - corner[0]) + abs(currentPos[1] - corner[1])
-			dists.append(manDist)
-					
-    if len(dists) == 0: 
-        return 0 
-    else: 
-        return min(dists)
+    for corner in corners:
+        if corner not in state[1]:
+            #( (xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2 ) ** 0.5
+            dist = abs(currentPos[0] - corner[0]) + abs(currentPos[1] - corner[1])
+            #dist = ((currentPos[0] - corner[0])**2 + (currentPos[1] - corner[1])**2)**0.5
+            dists.append( dist )
+
+    if len(dists) > 0:
+      result = sum(dists) / len(dists)
+      #result = reduce(lambda x, y: x*y, dists) ** (1 / len(dists))
+    
+    return result
+    
+    
+    
 
 
 class AStarCornersAgent(SearchAgent):

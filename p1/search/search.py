@@ -18,7 +18,6 @@ Pacman agents (in searchAgents.py).
 """
 
 import util
-from random import randint
 
 class SearchProblem:
     """
@@ -98,25 +97,25 @@ def depthFirstSearch(problem):
     result = None
     
     while result == None:
-		currentPath = fringe.pop()
-		currentState = currentPath[-1]
-		
-		if problem.isGoalState(currentState[0]):
-			result = currentPath
-			continue
-		
-		succ = problem.getSuccessors(currentState[0])
-		
-		for state in succ:
-			if state[0] not in map(lambda x: x[0], currentPath):
-				new_list = currentPath[:]
-				new_list.append(state)
-				fringe.push(new_list)
-    
+      currentPath = fringe.pop()
+      currentState = currentPath[-1]
+      
+      if problem.isGoalState(currentState[0]):
+        result = currentPath
+        continue
+      
+      succ = problem.getSuccessors(currentState[0])
+      
+      for state in succ:
+        if state[0] not in map(lambda x: x[0], currentPath):
+          new_list = currentPath[:]
+          new_list.append(state)
+          fringe.push(new_list)
+      
     steps = []
     for state in result[1:]:
-		steps.append(state[1])
-    	
+      steps.append(state[1])
+
     return steps  
       
 
@@ -133,26 +132,26 @@ def breadthFirstSearch(problem):
     expanded = [problem.getStartState()]
     
     while result == None:
-		currentPath = fringe.pop()
-		currentState = currentPath[-1]
-		
-		if problem.isGoalState(currentState[0]):
-			result = currentPath
-			continue
-		
-		succ = problem.getSuccessors(currentState[0])
-		
-		for state in succ:
-			if state[0] not in expanded:
-				expanded.append(state[0])
-				new_list = currentPath[:]
-				new_list.append(state)
-				fringe.push(new_list)
+      currentPath = fringe.pop()
+      currentState = currentPath[-1]
+      
+      if problem.isGoalState(currentState[0]):
+        result = currentPath
+        continue
+      
+      succ = problem.getSuccessors(currentState[0])
+      
+      for state in succ:
+        if state[0] not in expanded:
+          expanded.append(state[0])
+          new_list = currentPath[:]
+          new_list.append(state)
+          fringe.push(new_list)
     
     steps = []
     for state in result[1:]:
-		steps.append(state[1])
-    	
+      steps.append(state[1])
+      
     return steps  
 
 def uniformCostSearch(problem):
@@ -168,33 +167,33 @@ def uniformCostSearch(problem):
     expanded = {}
     
     while result == None:
-		currentPath = fringe.pop()
-		currentState = currentPath[-1]
-		currentCost = currentState[1]
-		
-		#print currentPath
-		
-		if problem.isGoalState(currentState[0][0]):
-			result = currentPath
-			continue
-		
-		if currentState[0][0] in expanded:
-			succ = expanded[currentState[0][0]] 
-		else: 
-			succ = problem.getSuccessors(currentState[0][0])
-			expanded[currentState[0][0]] = succ
-		
-		for state in succ:
-			if state[0] not in expanded:			
-				new_cost = currentCost + state[2]
-				new_list = currentPath[:]
-				new_list.append([state, new_cost])
-				fringe.push(new_list, new_cost)
+      currentPath = fringe.pop()
+      currentState = currentPath[-1]
+      currentCost = currentState[1]
+      
+      #print currentPath
+      
+      if problem.isGoalState(currentState[0][0]):
+        result = currentPath
+        continue
+      
+      if currentState[0][0] in expanded:
+        succ = expanded[currentState[0][0]] 
+      else: 
+        succ = problem.getSuccessors(currentState[0][0])
+        expanded[currentState[0][0]] = succ
+      
+      for state in succ:
+        if state[0] not in expanded:      
+          new_cost = currentCost + state[2]
+          new_list = currentPath[:]
+          new_list.append([state, new_cost])
+          fringe.push(new_list, new_cost)
     
     steps = []
     for state in result[1:]:
-		steps.append(state[0][1])
-    	
+      steps.append(state[0][1])
+      
     return steps 
 
 def nullHeuristic(state, problem=None):
@@ -217,33 +216,37 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     expanded = {}
     
     while result == None:
-		currentPath = fringe.pop()
-		currentState = currentPath[-1]
-		currentCost = currentState[1]
-		
-		#print currentPath
-		
-		if problem.isGoalState(currentState[0][0]):
-			result = currentPath
-			continue
-		
-		if currentState[0][0] in expanded.keys():
-			succ = expanded[currentState[0][0]] 
-		else: 
-			succ = problem.getSuccessors(currentState[0][0])
-			expanded[currentState[0][0]] = succ
-		
-		for state in succ:
-			if state[0] not in expanded.keys():			
-				new_cost = currentCost + state[2]
-				new_list = currentPath[:]
-				new_list.append([state, new_cost])
-				fringe.push(new_list, new_cost + heuristic(state[0], problem))
+      currentPath = fringe.pop()
+      currentState = currentPath[-1]
+      currentCost = currentState[1]
+      
+      #print currentPath
+      
+      if problem.isGoalState(currentState[0][0]):
+        result = currentPath
+        continue
+      
+      if currentState[0][0] in expanded.keys():
+        #print "Using cached successors for "
+        #print currentState[0][0]
+        succ = expanded[currentState[0][0]]
+      else: 
+        #print "Expanding node "
+        #print currentState[0][0]
+        succ = problem.getSuccessors(currentState[0][0])
+        expanded[currentState[0][0]] = succ
+      
+      for state in succ:
+        if state[0] not in expanded.keys():      
+          new_cost = currentCost + state[2]
+          new_list = currentPath[:]
+          new_list.append([state, new_cost])
+          fringe.push(new_list, new_cost + heuristic(state[0], problem))
     
     steps = []
     for state in result[1:]:
-		steps.append(state[0][1])
-    	
+      steps.append(state[0][1])
+      
     return steps 
 
 
