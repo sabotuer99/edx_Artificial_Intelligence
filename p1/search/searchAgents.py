@@ -375,34 +375,48 @@ def cornersHeuristic(state, problem):
     """
     corners = problem.corners # These are the corner coordinates
     #walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
-    result = 0
-    dists = []
+    numEaten = len(state[1])
     
-    """
-    if len(state[1]) == 0:
-      currentPos = state[0]
-      for corner in corners:
-          if corner not in state[1]:
-              #( (xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2 ) ** 0.5
-              dists.append( abs(currentPos[0] - corner[0]) + abs(currentPos[1] - corner[1]) )
-              result = min(dists)
-    
-    else:"""
-    
-    currentPos = state[0]
-    for corner in corners:
-        if corner not in state[1]:
-            #( (xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2 ) ** 0.5
-            dist = abs(currentPos[0] - corner[0]) + abs(currentPos[1] - corner[1])
-            #dist = ((currentPos[0] - corner[0])**2 + (currentPos[1] - corner[1])**2)**0.5
-            dists.append( dist )
+    if numEaten == 4:
+      return 0
 
-    if len(dists) > 0:
-      result = sum(dists) / len(dists)
-      #result = reduce(lambda x, y: x*y, dists) ** (1 / len(dists))
+    currentPos = state[0]
+    closestDist = 999999
+    closestCorn = None;
+    remaining = []
     
+    "Find corner closes to current position"
+    for corner in corners:
+      if corner not in state[1]:
+        remaining.append(corner)
+        dist = ((currentPos[0] - corner[0])**2 + (currentPos[1] - corner[1])**2)**0.5
+        if dist < closestDist :
+          closestDist = dist
+          closestCorn = corner
+        
+    result = closestDist    
+        
+    "Find mann distance to other nodes"
+    remaining.remove(closestCorn);
+    currentPos = closestCorn;
+    
+    while len(remaining) > 0:
+      closestDist = 999999
+      for corner in remaining:
+          dist = abs(currentPos[0] - corner[0]) + abs(currentPos[1] - corner[1])
+          if dist < closestDist :
+            closestDist = dist
+            closestCorn = corner
+            
+      remaining.remove(closestCorn);
+      currentPos = closestCorn; 
+      result += closestDist   
+
+    #print result
+
+
     return result
-    
+ 
     
     
 
