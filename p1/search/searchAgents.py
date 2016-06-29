@@ -437,6 +437,7 @@ class FoodSearchProblem:
       foodGrid:       a Grid (see game.py) of either True or False, specifying remaining food
     """
     def __init__(self, startingGameState):
+        print startingGameState.getFood()
         self.start = (startingGameState.getPacmanPosition(), startingGameState.getFood())
         self.walls = startingGameState.getWalls()
         self.startingGameState = startingGameState
@@ -483,6 +484,7 @@ class AStarFoodSearchAgent(SearchAgent):
         self.searchFunction = lambda prob: search.aStarSearch(prob, foodHeuristic)
         self.searchType = FoodSearchProblem
 
+
 def foodHeuristic(state, problem):
     """
     Your heuristic for the FoodSearchProblem goes here.
@@ -513,7 +515,54 @@ def foodHeuristic(state, problem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    #corners = problem.corners # These are the corner coordinates
+    #walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+    
+    foodList = foodGrid.asList()
+    
+    return len(foodList)
+    
+    """
+    if len(foodList) == 0:
+      return 0
+
+    
+    #currentPos = state[0]
+    closestDist = 999999
+    closestFood = None;
+    
+    #print foodList
+    
+    "Find food closes to current position"
+    for food in foodList:
+        dist = abs(position[0] - food[0]) + abs(position[1] - food[1])
+        if dist < closestDist :
+          closestDist = dist
+          closestFood = food
+        
+    #print closestFood
+    result = closestDist    
+        
+    "Find mann distance to other food"
+    
+    foodList.remove(closestFood);
+    position = closestFood;
+    
+    while len(foodList) > 0:
+      closestDist = 999999
+      for food in foodList:
+          dist = abs(position[0] - food[0]) + abs(position[1] - food[1])
+          if dist < closestDist :
+            closestDist = dist
+            closestFood = food
+      
+      #print foodList
+      #print closestFood
+      foodList.remove(closestFood);
+      position = closestFood;
+      result += closestDist   
+      """
+    return result
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
