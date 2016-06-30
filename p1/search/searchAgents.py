@@ -525,7 +525,7 @@ def foodHeuristic(state, problem):
     
     closestDist = 999999
     
-    "Find corner closes to current position"
+    "Find food closes to current position"
     for food in foodList:
         dist = ((position[0] - food[0])**2 + (position[1] - food[1])**2)**0.5
         if dist < closestDist :
@@ -568,13 +568,26 @@ class ClosestDotSearchAgent(SearchAgent):
         gameState.
         """
         # Here are some useful elements of the startState
-        startPosition = gameState.getPacmanPosition()
+        position = gameState.getPacmanPosition()
         food = gameState.getFood()
         walls = gameState.getWalls()
         problem = AnyFoodSearchProblem(gameState)
+        foodList = food.asList()
+
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        
+        closestDist = 999999
+        closestFood = None
+        for food in foodList:
+          dist = ((position[0] - food[0])**2 + (position[1] - food[1])**2)**0.5
+          if dist < closestDist :
+            closestDist = dist
+            closestFood = food
+        
+        problem.goal = closestFood
+        return search.bfs(problem)
+        
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
@@ -610,7 +623,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return state in self.food.asList()
 
 def mazeDistance(point1, point2, gameState):
     """
