@@ -279,8 +279,9 @@ class CornersProblem(search.SearchProblem):
         """
         self.walls = startingGameState.getWalls()
         self.startingPosition = startingGameState.getPacmanPosition()
-        top, right = self.walls.height-2, self.walls.width-2
-        self.corners = ((1,1), (1,top), (right, 1), (right, top))
+        self.top = self.walls.height-2
+        self.right = self.walls.width-2
+        self.corners = ((1,1), (1,self.top), (self.right, 1), (self.right, self.top))
         for corner in self.corners:
             if not startingGameState.hasFood(*corner):
                 print 'Warning: no food in corner ' + str(corner)
@@ -337,7 +338,7 @@ class CornersProblem(search.SearchProblem):
                 nextLocation = (nextx, nexty)
                 nextGoal = state[1][:] 
                 if nextLocation in self.corners and nextLocation not in state[1]:
-                  nextGoal = state[1][:] + (nextLocation,)
+                  nextGoal += (nextLocation,)
                 
                 nextState = (nextLocation, nextGoal)
                 cost = 1 #self.costFn(nextLocation)
@@ -374,7 +375,10 @@ def cornersHeuristic(state, problem):
     admissible (as well as consistent).
     """
     corners = problem.corners # These are the corner coordinates
-    #walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+    top = walls.height-2
+    right = walls.width-2
+    
     numEaten = len(state[1])
     
     if numEaten == 4:
@@ -382,23 +386,43 @@ def cornersHeuristic(state, problem):
 
     currentPos = state[0]
     closestDist = 999999
-    closestCorn = None;
+    closestCorn = None
     remaining = []
     
     "Find corner closes to current position"
     for corner in corners:
       if corner not in state[1]:
         remaining.append(corner)
-        dist = ((currentPos[0] - corner[0])**2 + (currentPos[1] - corner[1])**2)**0.5
+        dist = abs(currentPos[0] - corner[0]) + abs(currentPos[1] - corner[1])
         if dist < closestDist :
           closestDist = dist
           closestCorn = corner
         
     result = closestDist    
         
+    "Add distance to other nodes"
+    added = 0
+    if numEaten == 0:
+      added += min([right, top]) * 2 + max([right, top]) - 3
+    if numEaten == 1:
+      "if closestCorn is catty corner eaten corn"
+      eaten = state[1][0]
+      if(closestCorn[0] != eaten[0] and closestCorn[1] != eaten[1]):
+        added += min([right, top]) * 2 + max([right, top]) - 3
+      else:
+        added += top + right - 2
+    if numEaten == 2:
+      if state[1][0][0] == state[1][1][0]:
+        added += top - 1
+      else:
+        added += right - 1
+        
+    
+    """
     "Find mann distance to other nodes"
     remaining.remove(closestCorn);
     currentPos = closestCorn;
+    loopdist = 0
     
     while len(remaining) > 0:
       closestDist = 999999
@@ -410,12 +434,13 @@ def cornersHeuristic(state, problem):
             
       remaining.remove(closestCorn);
       currentPos = closestCorn; 
-      result += closestDist   
+      loopdist += closestDist 
 
-    #print result
+    if not loopdist == added:
+      print "ld: " + str(loopdist) + " simp:" + str(added) + " numEat:" + str(numEaten)
+    """
 
-
-    return result
+    return result + added
  
     
     
@@ -437,7 +462,7 @@ class FoodSearchProblem:
       foodGrid:       a Grid (see game.py) of either True or False, specifying remaining food
     """
     def __init__(self, startingGameState):
-        print startingGameState.getFood()
+        #print startingGameState.getFood()
         self.start = (startingGameState.getPacmanPosition(), startingGameState.getFood())
         self.walls = startingGameState.getWalls()
         self.startingGameState = startingGameState
