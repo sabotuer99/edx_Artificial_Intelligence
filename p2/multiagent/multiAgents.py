@@ -69,12 +69,45 @@ class ReflexAgent(Agent):
         # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         newPos = successorGameState.getPacmanPosition()
-        newFood = successorGameState.getFood()
+        newFood = successorGameState.getFood().asList()
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-
+        
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        """
+        print "###########"
+        print newPos
+        print newFood.asList()"""
+        ghostStates = map(lambda x : (abs(x.getPosition()[0] - newPos[0]) + abs(x.getPosition()[1] - newPos[1]), x.scaredTimer ), newGhostStates)
+        """
+        print ghostStates
+        print newScaredTimes
+        """
+        evaluation = successorGameState.getScore()
+        #print dir(currentGameState)
+        
+        
+        if newPos == currentGameState.getPacmanPosition():
+          evaluation -= 500
+        
+        for state in ghostStates:
+          if state[0] == 0 and state[1] == 0:
+            evaluation = -999999
+          if state[0] == 1 and state[1] == 0:
+            evaluation = -500
+        
+        totFoodDist = 0;
+        for foodPos in newFood:
+          totFoodDist -= (abs(foodPos[0] - newPos[0]) + abs(foodPos[1] - newPos[1]))**0.5
+          
+          #reduce(lambda x, y : (abs(x[0] - newPos[0]) + abs(x[1] - newPos[1]))**0.5 + (abs(y[0] - newPos[0]) + abs(y[1] - newPos[1]))**0.5, newFood)
+        if len(newFood) > 0:
+          evaluation += (totFoodDist / len(newFood))
+        else:
+          evaluation += 999999
+        
+        #print evaluation;
+        return evaluation;
 
 def scoreEvaluationFunction(currentGameState):
     """
