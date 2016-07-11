@@ -69,6 +69,7 @@ class ReflexAgent(Agent):
         # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         newPos = successorGameState.getPacmanPosition()
+        newCaps = successorGameState.getCapsules() #.asList()
         newFood = successorGameState.getFood().asList()
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
@@ -89,6 +90,9 @@ class ReflexAgent(Agent):
         
         if newPos == currentGameState.getPacmanPosition():
           evaluation -= 500
+          
+        #if newPos in newCaps:
+        #  evaluation += 1000
         
         for state in ghostStates:
           if state[0] == 0 and state[1] == 0:
@@ -96,13 +100,30 @@ class ReflexAgent(Agent):
           if state[0] == 1 and state[1] == 0:
             evaluation = -500
         
-        totFoodDist = 0;
+        totFoodDist = 0
         for foodPos in newFood:
           totFoodDist -= (abs(foodPos[0] - newPos[0]) + abs(foodPos[1] - newPos[1]))**0.5
-          
+        
+        
+        
+        """
+        liveGhosts = list()
+        for ghost in newGhostStates:
+          #print dir(ghost)
+          if not ghost.scaredTimer > 0:
+            liveGhosts.append(ghost.getPosition())
+
+        totGhostDist = 0
+        for ghostPos in liveGhosts:
+          #print ghostPos
+          totGhostDist += (abs(ghostPos[0] - newPos[0]) + abs(ghostPos[1] - newPos[1]))**0.5
+        """   
+        #print totFoodDist
+            
           #reduce(lambda x, y : (abs(x[0] - newPos[0]) + abs(x[1] - newPos[1]))**0.5 + (abs(y[0] - newPos[0]) + abs(y[1] - newPos[1]))**0.5, newFood)
         if len(newFood) > 0:
-          evaluation += (totFoodDist / len(newFood))
+          evaluation += totFoodDist / len(newFood)
+          #evaluation += (totGhostDist / len(ghostStates)) / 2
         else:
           evaluation += 999999
         
@@ -162,7 +183,62 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns the total number of agents in the game
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #print dir(gameState)
+        
+        pactions = gameState.getLegalActions(0)
+        bestAction = None
+        bestValue = float("-inf")
+        for action in pactions:
+          v = self.getValue(gameState.generateSuccessor(0, action), 0, 0)
+          #print v
+          if v > bestValue:
+            bestAction = action
+            bestValue = v
+            
+        #print "Best Value: " + str(bestValue) 
+        return bestAction
+          
+    
+    def getValue(self, state, prevAgentIndex, depth):
+        #TERMINAL TEST
+        #print (prevAgentIndex, depth)
+        agentIndex = (prevAgentIndex + 1) % state.getNumAgents()
+        legalActions = state.getLegalActions(agentIndex)
+        #print agentIndex
+        #print legalActions
+        
+        if depth == self.depth or len(legalActions) == 0: # and prevAgentIndex + 1 == state.getNumAgents():
+          score = self.evaluationFunction(state)
+          return score       
+
+        bestValue = 0
+        
+        if agentIndex == 0:
+          "Do max value, increment depth"
+          bestValue = float("-inf")
+          for action in legalActions:
+            v = self.getValue(state.generateSuccessor(agentIndex, action), agentIndex, depth)
+            #print "Depth " + str(depth) + " max value: " + str(v) + " for action " + action
+            if v > bestValue:
+              bestValue = v         
+        else:
+          "Do min value"
+          bestValue = float("inf")
+          
+          #only increment depth if this is the last agent
+          if (agentIndex + 1) == state.getNumAgents():
+            depth += 1
+            
+          for action in legalActions:
+            v = self.getValue(state.generateSuccessor(agentIndex, action), agentIndex, depth)
+            #print "Depth " + str(depth) + " min value: " + str(v) + " for action " + action
+            if v < bestValue:
+              bestValue = v
+        
+        #print bestValue  
+        return bestValue
+        
+        
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
