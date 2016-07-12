@@ -243,14 +243,74 @@ class MinimaxAgent(MultiAgentSearchAgent):
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
       Your minimax agent with alpha-beta pruning (question 3)
+    
+    a = float("-inf")
+    B = float("inf")
     """
-
     def getAction(self, gameState):
         """
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+                
+        pactions = gameState.getLegalActions(0)
+        bestAction = None
+        bestValue = float("-inf")
+        a = float("-inf")
+        B = float("inf")
+        for action in pactions:
+          v = self.getABValue(gameState.generateSuccessor(0, action), 0, 0, a, B)
+          #print v
+          if v > bestValue:
+            bestAction = action
+            bestValue = v
+          a = max(a, bestValue)
+            
+        #print "Best Value: " + str(bestValue) 
+        return bestAction
+          
+    
+    def getABValue(self, state, prevAgentIndex, depth, a, B):
+        #TERMINAL TEST
+        #print (prevAgentIndex, depth)
+        agentIndex = (prevAgentIndex + 1) % state.getNumAgents()
+        legalActions = state.getLegalActions(agentIndex)
+        #print agentIndex
+        
+        if depth == self.depth or len(legalActions) == 0: # and prevAgentIndex + 1 == state.getNumAgents():
+          score = self.evaluationFunction(state)
+          return score       
+
+        bestValue = 0
+        
+        if agentIndex == 0:
+          "Do max value, increment depth"
+          bestValue = float("-inf")
+          for action in legalActions:
+            bestValue = max(self.getABValue(state.generateSuccessor(agentIndex, action), agentIndex, depth, a, B), bestValue)
+            #alpha-beta
+            if bestValue > B:
+              #print "PRUNE MAX!"
+              return bestValue
+            a = max(a, bestValue) 
+                    
+        else:
+          "Do min value"
+          bestValue = float("inf")
+          #only increment depth if this is the last agent
+          if (agentIndex + 1) == state.getNumAgents():
+            depth += 1
+            
+          for action in legalActions:
+            bestValue = min(self.getABValue(state.generateSuccessor(agentIndex, action), agentIndex, depth, a, B), bestValue)
+            #alpha-beta
+            if bestValue < a:
+              #print "PRUNE MIN!"
+              return bestValue
+            B = min(B, bestValue)
+              
+        #print bestValue  
+        return bestValue
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
