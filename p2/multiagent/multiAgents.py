@@ -325,7 +325,58 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+                #print dir(gameState)
+        
+        pactions = gameState.getLegalActions(0)
+        bestAction = None
+        bestValue = float("-inf")
+        for action in pactions:
+          v = self.getValue(gameState.generateSuccessor(0, action), 0, 0)
+          #print v
+          if v > bestValue:
+            bestAction = action
+            bestValue = v
+            
+        #print "Best Value: " + str(bestValue) 
+        return bestAction
+      
+    def getValue(self, state, prevAgentIndex, depth):
+        #TERMINAL TEST
+        #print (prevAgentIndex, depth)
+        agentIndex = (prevAgentIndex + 1) % state.getNumAgents()
+        legalActions = state.getLegalActions(agentIndex)
+        #print agentIndex
+        #print legalActions
+        
+        if depth == self.depth or len(legalActions) == 0: # and prevAgentIndex + 1 == state.getNumAgents():
+          score = self.evaluationFunction(state)
+          return score       
+
+        bestValue = 0.0
+        
+        if agentIndex == 0:
+          "Do max value, increment depth"
+          bestValue = float("-inf")
+          for action in legalActions:
+            v = self.getValue(state.generateSuccessor(agentIndex, action), agentIndex, depth)
+            #print "Depth " + str(depth) + " max value: " + str(v) + " for action " + action
+            if v > bestValue:
+              bestValue = v         
+        else:
+          "Do expected value"
+          
+          #only increment depth if this is the last agent
+          if (agentIndex + 1) == state.getNumAgents():
+            depth += 1
+            
+          for action in legalActions:
+            bestValue += self.getValue(state.generateSuccessor(agentIndex, action), agentIndex, depth) * 1.0
+            #print "Depth " + str(depth) + " min value: " + str(v) + " for action " + action
+          if len(legalActions) > 0:
+            bestValue /= len(legalActions)
+        
+        #print bestValue  
+        return bestValue
 
 def betterEvaluationFunction(currentGameState):
     """
