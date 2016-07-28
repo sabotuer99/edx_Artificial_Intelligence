@@ -1,4 +1,4 @@
-# valueIterationAgents.py
+  # valueIterationAgents.py
 # -----------------------
 # Licensing Information:  You are free to use or extend these projects for
 # educational purposes provided that (1) you do not distribute or publish
@@ -45,6 +45,42 @@ class ValueIterationAgent(ValueEstimationAgent):
 
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
+        print mdp.getStates() #['TERMINAL_STATE', (0, 0), (0, 1), (0, 2)]
+        print mdp.getPossibleActions((0, 1)) #('north', 'west', 'south', 'east')
+        print mdp.getTransitionStatesAndProbs((0, 1), 'south') #[((0, 1), 0.0), ((0, 0), 1.0)]
+        print mdp.getReward((0, 1), 'south', (0, 0)) # 0.0
+        print mdp.getReward((0, 0), 'exit', 'TERMINAL_STATE') # 10
+        print mdp.isTerminal('TERMINAL_STATE')  # True
+
+        """
+          for range 0 to iterations{
+            foreach S in mdp.getStates(){
+              V*(s) = max_a Q*(s,a)
+              Q*(s,a) = Σ_s' T(s,a,s')[R(s,a,s') + γV*(s')]
+            }
+          }
+          
+          for range 0 to iterations{
+            foreach S in mdp.getStates(){
+            
+              qvals = []
+              foreach a in mdp.getPossibleActions(s){
+                foreach T in mdp.getTransisitonStatesandProbs(s,a){
+                  
+                
+                }
+              }
+            
+            
+              V*(s) = max_a Q*(s,a)
+              Q*(s,a) = Σ_s' T(s,a,s')[R(s,a,s') + γV*(s')]
+            }
+          }
+          
+          
+        """
+
+
 
 
     def getValue(self, state):
