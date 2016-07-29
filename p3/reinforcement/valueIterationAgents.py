@@ -45,42 +45,40 @@ class ValueIterationAgent(ValueEstimationAgent):
 
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
+        """
         print mdp.getStates() #['TERMINAL_STATE', (0, 0), (0, 1), (0, 2)]
         print mdp.getPossibleActions((0, 1)) #('north', 'west', 'south', 'east')
         print mdp.getTransitionStatesAndProbs((0, 1), 'south') #[((0, 1), 0.0), ((0, 0), 1.0)]
         print mdp.getReward((0, 1), 'south', (0, 0)) # 0.0
         print mdp.getReward((0, 0), 'exit', 'TERMINAL_STATE') # 10
         print mdp.isTerminal('TERMINAL_STATE')  # True
-
         """
-          for range 0 to iterations{
-            foreach S in mdp.getStates(){
-              V*(s) = max_a Q*(s,a)
-              Q*(s,a) = Σ_s' T(s,a,s')[R(s,a,s') + γV*(s')]
-            }
-          }
+        #symbolic version
+        #  for range 0 to iterations{
+        #    foreach S in mdp.getStates(){
+        #      V*(s) = max_a Q*(s,a)
+        #      Q*(s,a) = E_s' T(s,a,s')[R(s,a,s') + gV*(s')]
+        #    }
+        #  }
+         
+          #code version
+        #print self.values
           
-          for range 0 to iterations{
-            foreach S in mdp.getStates(){
-            
-              qvals = []
-              foreach a in mdp.getPossibleActions(s){
-                foreach T in mdp.getTransisitonStatesandProbs(s,a){
-                  
-                
-                }
-              }
-            
-            
-              V*(s) = max_a Q*(s,a)
-              Q*(s,a) = Σ_s' T(s,a,s')[R(s,a,s') + γV*(s')]
-            }
-          }
+        for _ in range(0,iterations):         
+          newVals = util.Counter()        
+          for s in mdp.getStates():    
+            #print s     
+            qvals = []
+            for a in mdp.getPossibleActions(s):                          
+              qvals.append(self.computeQValueFromValues(s, a)) 
+            if len(qvals) > 0:
+              #print qvals
+              newVals[s] = max(qvals)
+            else:
+              newVals[s] = 0
+          self.values = newVals;
           
-          
-        """
-
-
+        #print self.values
 
 
     def getValue(self, state):
@@ -96,7 +94,17 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        if self.mdp.isTerminal(state):
+          return 0
+        
+        
+        actionval = 0
+        for T in self.mdp.getTransitionStatesAndProbs(state,action):
+          sprime = T[0]
+          p = T[1]
+          actionval += p * (self.mdp.getReward(state, action, sprime) + (self.discount * self.values[sprime]))
+        
+        return actionval; 
 
     def computeActionFromValues(self, state):
         """
@@ -108,7 +116,17 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        
+        action = None
+        bestv = float("-inf")
+        for a in self.mdp.getPossibleActions(state):
+          qv = self.computeQValueFromValues(state, a)
+          if  qv > bestv:
+            bestv = qv
+            action = a
+            
+        return action
+            
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
