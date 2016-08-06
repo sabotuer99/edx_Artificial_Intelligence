@@ -163,4 +163,31 @@ class GreedyBustersAgent(BustersAgent):
             [beliefs for i, beliefs in enumerate(self.ghostBeliefs)
              if livingGhosts[i+1]]
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        """
+        print pacmanPosition
+        print legal
+        print livingGhosts
+        print livingGhostPositionDistributions
+        """
+        glocs = []
+        for dist in livingGhostPositionDistributions:
+          glocs.append(max(dist, key=lambda x: dist[x]))
+          
+        "print glocs"
+        
+        dists = {}
+        for a in legal:
+          pmloc = Actions.getSuccessor(gameState.getPacmanPosition(), a)
+          dists[a] = float("inf")
+          for loc in glocs:
+            dists[a] = min(dists[a], self.distancer.getDistance(pmloc, loc))
+          
+            
+          
+        #print "########"
+        #print dists
+        
+        
+        return min(dists, key=lambda x: dists[x])
+        
+        
