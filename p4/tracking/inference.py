@@ -525,7 +525,7 @@ class JointParticleFilter:
         self.ghostAgents.append(agent)
 
     def getJailPosition(self, i):
-        return (2 * i + 1, 1);
+        return (2 * i + 1, 1)
 
     def observeState(self, gameState):
         """
@@ -643,12 +643,48 @@ class JointParticleFilter:
               agents are always the same.
         """
         newParticles = []
+        weights = util.Counter()
+        priors = self.getBeliefDistribution()
+        
+        #cache the distributions
+        newPosDists = {}
+        for perm in self.permutationsWJail:
+          for i in range(self.numGhosts):
+            newPosDists[(i, perm)] = getPositionDistributionForGhost(
+               setGhostPositions(gameState, perm), i, self.ghostAgents[i]
+              ) 
+        
+        cachedWeights = {}
+        priors = self.getBeliefDistribution() 
+        
         for oldParticle in self.particles:
             newParticle = list(oldParticle) # A list of ghost positions
             # now loop through and update each entry in newParticle...
             "*** YOUR CODE HERE ***"
+            
+            for i in range(self.numGhosts): 
+                 
+              weights = util.Counter()
+               
+              if (i,oldParticle) in cachedWeights:
+                weights = cachedWeights[(i,oldParticle)]  
+              else:                 
+                newPosDist = newPosDists[(i, oldParticle)]             
+                for newPos, prob in newPosDist.items():
+                  weights[newPos] += prob * priors[oldParticle]
+                cachedWeights[(i,oldParticle)] = weights
+              
+              if sum(weights.values()) == 0:
+                newParticle[i] = oldParticle[i]
+              else:
+                dist = []
+                for x in range(0, len(self.legalPositions)):
+                  pos = self.legalPositions[x]
+                  dist.append(weights[pos])
+                newParticle[i] = util.sample(dist, self.legalPositions)
 
             "*** END YOUR CODE HERE ***"
+            #print newParticle
             newParticles.append(tuple(newParticle))
         self.particles = newParticles
 
@@ -658,9 +694,13 @@ class JointParticleFilter:
         #jd = {}
         belief = util.Counter()
         
+        """
         for p in self.permutationsWJail:
           pparts = [x for x in self.particles if x == p]
-          belief[p] = (len(pparts) * 1.0) / (self.numParticles * 1.0)
+          belief[p] = (len(pparts) * 1.0) / (self.numParticles * 1.0)"""
+          
+        for p in self.particles:
+          belief[p] += 1
           
         belief.normalize()
         #for ghosts in self.particles:
