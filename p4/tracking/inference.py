@@ -17,6 +17,7 @@ import util
 import random
 import busters
 import game
+from random import shuffle
 
 class InferenceModule:
     """
@@ -373,7 +374,7 @@ class ParticleFilter(InferenceModule):
         a belief distribution.
         """
         "*** YOUR CODE HERE ***"        
-        print "elapseTime"
+        #print "elapseTime"
         weights = util.Counter()
         priors = self.getBeliefDistribution()
         
@@ -464,6 +465,11 @@ class JointParticleFilter:
         self.numGhosts = gameState.getNumAgents() - 1
         self.ghostAgents = []
         self.legalPositions = legalPositions
+        
+        lists = [self.legalPositions] * self.numGhosts
+        self.permutations = list(itertools.product(*lists))
+        self.precomputed = None
+        
         self.initializeParticles()
 
     def initializeParticles(self):
@@ -489,6 +495,20 @@ class JointParticleFilter:
         """
         "*** YOUR CODE HERE ***"
 
+        
+        permCount = len(self.permutations)
+        if(permCount > self.numParticles):
+          shuffle(self.permutations)
+          self.particles = self.permutations[0:self.numParticles]
+          
+        else:
+          self.particles = []
+          for x in range(0, self.numParticles):
+            i = x % permCount
+            self.particles.append(self.permutations[i])
+
+
+
     def addGhostAgent(self, agent):
         """
         Each ghost agent is registered separately and stored (in case they are
@@ -503,26 +523,20 @@ class JointParticleFilter:
         """
         Resamples the set of particles using the likelihood of the noisy
         observations.
-
         To loop over the ghosts, use:
-
           for i in range(self.numGhosts):
             ...
-
         A correct implementation will handle two special cases:
           1) When a ghost is captured by Pacman, all particles should be updated
              so that the ghost appears in its prison cell, position
              self.getJailPosition(i) where `i` is the index of the ghost.
-
              As before, you can check if a ghost has been captured by Pacman by
              checking if it has a noisyDistance of None.
-
           2) When all particles receive 0 weight, they should be recreated from
              the prior distribution by calling initializeParticles. After all
              particles are generated randomly, any ghosts that are eaten (have
              noisyDistance of None) must be changed to the jail Position. This
              will involve changing each particle if a ghost has been eaten.
-
         self.getParticleWithGhostInJail is a helper method to edit a specific
         particle. Since we store particles as tuples, they must be converted to
         a list, edited, and then converted back to a tuple. This is a common
@@ -534,7 +548,21 @@ class JointParticleFilter:
             return
         emissionModels = [busters.getObservationDistribution(dist) for dist in noisyDistances]
 
+        #Update jailed ghosts
+        for g in range(self.numGhosts):
+          if(noisyDistances[g] == None):
+            for x in range(0, self.numParticles):
+              self.particles[x] = self.getParticleWithGhostInJail(self.particles[x], g)
+
+
         "*** YOUR CODE HERE ***"
+        for p in self.particles:
+          ""
+                 
+        
+          
+          
+          
 
     def getParticleWithGhostInJail(self, particle, ghostIndex):
         """
@@ -549,42 +577,33 @@ class JointParticleFilter:
         """
         Samples each particle's next state based on its current state and the
         gameState.
-
         To loop over the ghosts, use:
-
           for i in range(self.numGhosts):
             ...
-
         Then, assuming that `i` refers to the index of the ghost, to obtain the
         distributions over new positions for that single ghost, given the list
         (prevGhostPositions) of previous positions of ALL of the ghosts, use
         this line of code:
-
           newPosDist = getPositionDistributionForGhost(
              setGhostPositions(gameState, prevGhostPositions), i, self.ghostAgents[i]
           )
-
         Note that you may need to replace `prevGhostPositions` with the correct
         name of the variable that you have used to refer to the list of the
         previous positions of all of the ghosts, and you may need to replace `i`
         with the variable you have used to refer to the index of the ghost for
         which you are computing the new position distribution.
-
         As an implementation detail (with which you need not concern yourself),
         the line of code above for obtaining newPosDist makes use of two helper
         functions defined below in this file:
-
           1) setGhostPositions(gameState, ghostPositions)
               This method alters the gameState by placing the ghosts in the
               supplied positions.
-
           2) getPositionDistributionForGhost(gameState, ghostIndex, agent)
               This method uses the supplied ghost agent to determine what
               positions a ghost (ghostIndex) controlled by a particular agent
               (ghostAgent) will move to in the supplied gameState.  All ghosts
               must first be placed in the gameState using setGhostPositions
               above.
-
               The ghost agent you are meant to supply is
               self.ghostAgents[ghostIndex-1], but in this project all ghost
               agents are always the same.
@@ -593,7 +612,6 @@ class JointParticleFilter:
         for oldParticle in self.particles:
             newParticle = list(oldParticle) # A list of ghost positions
             # now loop through and update each entry in newParticle...
-
             "*** YOUR CODE HERE ***"
 
             "*** END YOUR CODE HERE ***"
@@ -602,7 +620,19 @@ class JointParticleFilter:
 
     def getBeliefDistribution(self):
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #val = 1.0 / (self.numParticles * 1.0)
+        #jd = {}
+        belief = util.Counter()
+        
+        for p in self.permutations:
+          pparts = [x for x in self.particles if x == p]
+          belief[p] = (len(pparts) * 1.0) / (self.numParticles * 1.0)
+          
+        belief.normalize()
+        #for ghosts in self.particles:
+        #  jd[ghosts] = belief[ghosts]
+
+        return belief
 
 # One JointInference module is shared globally across instances of MarginalInference
 jointInference = JointParticleFilter()
