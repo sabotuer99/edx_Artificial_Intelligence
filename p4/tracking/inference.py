@@ -468,6 +468,14 @@ class JointParticleFilter:
         
         lists = [self.legalPositions] * self.numGhosts
         self.permutations = list(itertools.product(*lists))
+        
+        legalandjail = []
+        for i in range(0,self.numGhosts):
+          pos = [self.getJailPosition(i)] + self.legalPositions
+          legalandjail.append(pos)
+        
+        self.permutationsWJail = list(itertools.product(*legalandjail))
+        
         self.precomputed = None
         
         self.initializeParticles()
@@ -549,17 +557,43 @@ class JointParticleFilter:
         emissionModels = [busters.getObservationDistribution(dist) for dist in noisyDistances]
 
         #Update jailed ghosts
-        for g in range(self.numGhosts):
-          if(noisyDistances[g] == None):
-            for x in range(0, self.numParticles):
-              self.particles[x] = self.getParticleWithGhostInJail(self.particles[x], g)
+        #print emissionModels
+
 
 
         "*** YOUR CODE HERE ***"
-        for p in self.particles:
-          ""
-                 
+        for g in range(self.numGhosts):
+          if(noisyDistances[g] == None):
+            for x in range(0, self.numParticles):
+              self.particles[x] = self.getParticleWithGhostInJail(self.particles[x], g)  
+            for y in range(0, len(self.permutations)):
+              self.permutations[y] = self.getParticleWithGhostInJail(self.permutations[y], g)  
+
         
+        weights = [1.0] * len(self.permutations) 
+        priors = self.getBeliefDistribution()
+
+        for x in range (0, len(self.permutations)):
+          p = self.permutations[x]
+          weights[x] *= priors[p]
+          
+          for i in range(self.numGhosts):
+            if noisyDistances[i] != None:
+              trueDistance = util.manhattanDistance(p[i], pacmanPosition)
+              weights[x] *= emissionModels[i][trueDistance]
+        
+        if sum(weights) == 0:
+          self.initializeParticles()
+          for g in range(self.numGhosts):
+            if(noisyDistances[g] == None):
+              for x in range(0, self.numParticles):
+                self.particles[x] = self.getParticleWithGhostInJail(self.particles[x], g)
+        else:
+          self.particles = util.nSample(weights, self.permutations, self.numParticles)
+        
+        
+   
+
           
           
           
@@ -624,7 +658,7 @@ class JointParticleFilter:
         #jd = {}
         belief = util.Counter()
         
-        for p in self.permutations:
+        for p in self.permutationsWJail:
           pparts = [x for x in self.particles if x == p]
           belief[p] = (len(pparts) * 1.0) / (self.numParticles * 1.0)
           
