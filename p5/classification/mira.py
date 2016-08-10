@@ -87,7 +87,21 @@ class MiraClassifier:
                       
         
         #find the best value of C
-        self.weights = tWeights[0]
+        bestScore = 0
+        bestIndex = 0
+        for C in range(len(Cgrid)):
+          self.weights = tWeights[C]
+          guesses = self.classify(validationData)
+          count = 0.0
+          for i in range(len(guesses)):
+            count += 1 if guesses[i] == validationLabels[i] else 0
+          score = count / len(guesses)
+          if score > bestScore:
+            bestScore = score
+            bestIndex = C
+        
+        self.weights = tWeights[bestIndex]
+            
 
     def classify(self, data ):
         """
