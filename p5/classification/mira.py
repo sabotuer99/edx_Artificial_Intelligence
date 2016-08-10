@@ -14,6 +14,7 @@
 
 # Mira implementation
 import util
+from _ast import Num
 PRINT = True
 
 class MiraClassifier:
@@ -61,7 +62,32 @@ class MiraClassifier:
         representing a vector of values.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        tWeights = []
+        for C in range(len(Cgrid)):
+          tWeights.append(self.weights.copy())
+          
+          for iteration in range(self.max_iterations):
+            
+              print "Starting iteration ", iteration, "..."
+              for i in range(len(trainingData)):
+                  y = self.classify([trainingData[i]])[0]
+                  yp = trainingLabels[i]
+                  if y != yp:
+                    num = (tWeights[C][yp] - tWeights[C][y]) * trainingData[i] + 1.0
+                    den = trainingData[i] * trainingData[i] * 2.0       
+                    
+                    #print trainingData[i]
+                    
+                    tau = min(num / den, Cgrid[C])
+                  
+                    for key in trainingData[i].keys(): 
+                      update = trainingData[i][key] * tau             
+                      tWeights[C][y][key] -= update
+                      tWeights[C][yp][key] += update
+                      
+        
+        #find the best value of C
+        self.weights = tWeights[0]
 
     def classify(self, data ):
         """
