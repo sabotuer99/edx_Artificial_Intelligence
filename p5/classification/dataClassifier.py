@@ -23,6 +23,7 @@ import mira
 import samples
 import sys
 import util
+import search
 from pacman import GameState
 
 TEST_SET_SIZE = 100
@@ -76,7 +77,9 @@ def enhancedFeatureExtractorDigit(datum):
     for this datum (datum is of type samples.Datum).
 
     ## DESCRIBE YOUR ENHANCED FEATURES HERE...
-
+      aspect ration: 1 if > 2, 0 otherwise
+      topHeavy, bottomHeavy: true if > 60 percent of black in that region
+      #regions:  1, 2, or more than three
     ##
     """
 
@@ -578,7 +581,75 @@ def enhancedPacmanFeatures(state, action):
     """
     features = util.Counter()
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    currentGameState = state
+    currentPos = currentGameState.getPacmanPosition()
+    currentCaps = currentGameState.getCapsules() #.asList()
+    currentFood = currentGameState.getFood().asList()
+    currentGhostStates = currentGameState.getGhostStates()
+    currentGhostDistAndTimer = map(lambda x : (search.mazeDistance(x.getPosition(), currentPos, state), x.scaredTimer), currentGhostStates)
+    currentFoodDists = map(lambda x : (x, abs(x[0] - currentPos[0]) + abs(x[1] - currentPos[1])), currentFood)
+    currentCapDists = map(lambda x : (x, abs(x[0] - currentPos[0]) + abs(x[1] - currentPos[1])), currentCaps)
+    currentClosestGhost = min(currentGhostDistAndTimer, key=lambda state: state[0])
+    currentScaredGhosts = [x for x in currentGhostDistAndTimer if x[1] > 0]
+    currentClosestScaredGhost = None if len(currentScaredGhosts) == 0 else min(currentScaredGhosts, key=lambda state: state[0])
+
+
+    newGameState = state.generatePacmanSuccessor(action)
+    newPos = newGameState.getPacmanPosition()
+    newCaps = newGameState.getCapsules() #.asList()
+    newFood = newGameState.getFood().asList()
+    newGhostStates = newGameState.getGhostStates()
+    newGhostDistAndTimer = map(lambda x : (search.mazeDistance(x.getPosition(), newPos, state), x.scaredTimer ), newGhostStates)
+    newFoodDists = map(lambda x : (x, abs(x[0] - newPos[0]) + abs(x[1] - newPos[1])), newFood)
+    newCapDists = map(lambda x : (x, abs(x[0] - newPos[0]) + abs(x[1] - newPos[1])), newCaps)
+    newClosestGhost = min(newGhostDistAndTimer, key=lambda state: state[0])
+
+
+    #print dir(search)
+
+    """
+     closestGhost
+     closestGhostTimer
+     closestFood
+     score
+     closestCapsule
+    """
+
+    #print closestGhost
+    #features["foodCount"] = len(foodDists)
+    features["closestScaredGhostDist"] =  0 if currentClosestScaredGhost == None else currentClosestScaredGhost[0] ** 2
+    features["closestGhostDist"] = 0 if newClosestGhost[0] == 0 else 1 / newClosestGhost[0] ** 2
+    #features["closestGhostTimer"] = newClosestGhost[1]
+    features["closestGhostDistChange"] = newClosestGhost[0] - currentClosestGhost[0]
+    features["closestGhostTimerChange"] = newClosestGhost[1] - currentClosestGhost[1]
+    features["closestFoodDist"] = 0 if len(newFoodDists) == 0 else 1 / search.mazeDistance(min(newFoodDists, key=lambda x: x[1])[0], newPos, state)
+    features["closestCapDist"] = 0 if len(newCapDists) == 0 else 1 / search.mazeDistance(min(newCapDists, key=lambda x: x[1])[0], newPos, state)
+    features["newScore"] = newGameState.getScore() ** 2
+    #features["isWin"] = 1 if newGameState.isWin() else 0
+    #features["isLose"] = 1 if newGameState.isLose() else 0
+    #features["Stop"] = -1000 if action == "Stop" else 0
+
+    """
+    for food in newFood:
+      features["food" + str(food)] = 1
+
+    for cap in newCaps:
+      features["caps" + str(cap)] = 1
+
+    index = 0
+    for ghost in sorted(newGhostDistAndTimer, key=lambda x: x[0]):
+      features["ghost" + str(index)] = ghost[0]
+      index += 1
+    """
+
+  
+    #print state
+    #print features
+  
+
+
+
     return features
 
 
