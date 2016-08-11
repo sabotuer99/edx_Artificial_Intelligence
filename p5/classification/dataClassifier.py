@@ -64,6 +64,118 @@ def basicFeatureExtractorFace(datum):
                 features[(x,y)] = 0
     return features
 
+
+"https://github.com/anthony-niklas/cs188/blob/master/p5/dataClassifier.py"
+"https://github.com/naderm/cs188/blob/master/p5/classification/dataClassifier.py"
+
+def enhancedFeatureExtractorDigit(datum):
+    """
+    Your feature extraction playground.
+
+    You should return a util.Counter() of features
+    for this datum (datum is of type samples.Datum).
+
+    ## DESCRIBE YOUR ENHANCED FEATURES HERE...
+
+    ##
+    """
+
+    #Get basic features
+    features = basicFeatureExtractorDigit(datum)
+
+    #use floodfill to count all the whitespace surrounding the character
+    #if the flood fill whitespace is less than 98% of the total whitespace (allows for noise),
+    #then there are loops in the figure   
+
+
+    bounding_box = getBoundingBox(datum)
+    blackcount = basicFeatureExtractorDigit(datum).totalCount()
+    black_in_top = blackInTop(datum, bounding_box, blackcount)
+    black_in_left = blackInLeft(datum, bounding_box, blackcount)
+    leftprobe, rightprobe = getHorizontalProbes(datum)
+    bottomprobe, topprobe = getVerticalProbes(datum)
+    regions = getContiguousRegions(datum)
+    has_loops = hasLoops(datum, blackcount)
+    aspectratio = getAspectRatio(bounding_box)
+    sidesmoothness = getSideSmoothness(leftprobe, rightprobe, bottomprobe, topprobe) #this has potential but it needs work...
+
+
+    #features["hasLoops"] = has_loops
+    features["aspectratio_gt_2"] = 1 if aspectratio > 2 else 0
+    features["isTopHeavy"] = 1 if black_in_top > 0.6 else 0
+    features["isLeftHeavy"] = 1 if black_in_left > 0.6 else 0
+    features["regions_1"] = 1 if regions == 1 else 0
+    features["regions_2"] = 1 if regions == 2 else 0
+    features["regions_3+"] = 1 if regions >= 3 else 0
+
+    
+    #print datum
+    #print sidesmoothness
+    """
+    print bounding_box
+    print black_in_top
+    print black_in_left
+    print regions
+    print has_loops
+    print aspectratio
+    """
+
+    return features
+
+
+def getSideSmoothness(leftprobe, rightprobe, bottomprobe, topprobe):
+
+  leftdrops = 0
+  rightdrops = 0
+  topdrops = 0
+  bottomdrops = 0
+
+  for y in range(DIGIT_DATUM_HEIGHT - 1):
+    leftdrops += 1 if abs(leftprobe[y] - leftprobe[y+1]) > 2 else 0
+    rightdrops += 1 if abs(rightprobe[y] - rightprobe[y+1]) > 2 else 0
+
+  for x in range(DIGIT_DATUM_HEIGHT - 1):
+    topdrops += 1 if abs(topprobe[x] - topprobe[x+1]) > 2 else 0
+    bottomdrops += 1 if abs(bottomprobe[x] - bottomprobe[x+1]) > 2 else 0
+
+  return {"left": leftdrops, "right": rightdrops, "bottom": bottomdrops, "top": topdrops}
+
+def floodfillCoords(x, y, datum, region): #region is a set
+    if (x,y) in region:
+      return
+    if datum.getPixel(x,y) > 1:
+      return
+    region.add((x,y))
+    
+    if x > 0:
+      floodfillCoords(x - 1, y, datum, region)
+    if x < DIGIT_DATUM_WIDTH - 1:
+      floodfillCoords(x + 1, y, datum, region)
+    if y > 0:
+      floodfillCoords(x, y - 1, datum, region)    
+    if y < DIGIT_DATUM_HEIGHT - 1:
+      floodfillCoords(x, y + 1, datum, region)
+
+def getContiguousRegions(datum):
+    regions = []
+    regions.append(set())
+    floodfillCoords(0,0,datum,regions[0])
+
+    for x in range(DIGIT_DATUM_WIDTH):
+      for y in range(DIGIT_DATUM_HEIGHT):
+        if datum.getPixel(x,y) <= 1 and notInAnySet((x,y), regions):
+          newRegion = set()
+          floodfillCoords(x,y,datum,newRegion)
+          regions.append(newRegion)
+
+    return len([r for r in regions if len(r) > 1])
+
+def notInAnySet(value, setlist):
+    for _set in setlist:
+      if value in _set:
+        return False
+    return True
+
 def floodfill(x, y, datum, tracker):
     if tracker[(x,y)] == 1:
       return
@@ -79,69 +191,106 @@ def floodfill(x, y, datum, tracker):
       floodfill(x, y - 1, datum, tracker)    
     if y < DIGIT_DATUM_HEIGHT - 1:
       floodfill(x, y + 1, datum, tracker)
-    
-def enhancedFeatureExtractorDigitScratch(datum):
-    """
-    Your feature extraction playground.
 
-    You should return a util.Counter() of features
-    for this datum (datum is of type samples.Datum).
+def getHorizontalProbes(datum):
+    leftprobe = [0 for _ in range(DIGIT_DATUM_HEIGHT)]
+    rightprobe = [0 for _ in range(DIGIT_DATUM_HEIGHT)]
+    for y in range(DIGIT_DATUM_HEIGHT):
+      firstblack = None
+      lastblack = None
+      for x in range(DIGIT_DATUM_WIDTH):
+          if datum.getPixel(x, y) > 0:
+              if firstblack == None:
+                firstblack = x
+              lastblack = x  
+      leftprobe[y] = DIGIT_DATUM_WIDTH if firstblack == None else firstblack
+      rightprobe[y] = 0 if firstblack == None else lastblack
 
-    ## DESCRIBE YOUR ENHANCED FEATURES HERE...
+    return [leftprobe, rightprobe]
 
-    ##
-    """
 
-    #Get basic features
-    features = basicFeatureExtractorDigit(datum)
+def getVerticalProbes(datum):
+    bottomprobe = [0 for _ in range(DIGIT_DATUM_HEIGHT)]
+    topprobe = [0 for _ in range(DIGIT_DATUM_HEIGHT)]
+    for x in range(DIGIT_DATUM_WIDTH):
+      firstblack = None
+      lastblack = None
+      for y in range(DIGIT_DATUM_HEIGHT):
+          if datum.getPixel(x, y) > 0:
+              if firstblack == None:
+                firstblack = y
+              lastblack = y  
+      bottomprobe[y] = DIGIT_DATUM_WIDTH if firstblack == None else firstblack
+      topprobe[y] = 0 if firstblack == None else lastblack
+      
+    return [bottomprobe, topprobe]
 
-    #Get count of filled pixels
-    blackcount = features.totalCount()
 
-    #use floodfill to count all the whitespace surrounding the character
-    #if the flood fill whitespace is less than 98% of the total whitespace (allows for noise),
-    #then there are loops in the figure
+def hasLoops(datum, blackcount):
     whitespace = util.Counter()
     floodfill(0,0,datum,whitespace)
     totalwhite = DIGIT_DATUM_HEIGHT * DIGIT_DATUM_WIDTH - blackcount 
-    hasLoops = 1 if 1.0 * whitespace.totalCount()/totalwhite < 0.98 else 0    
-    features["hasLoops"] = hasLoops
+    hasLoops = 1 if 1.0 * whitespace.totalCount()/totalwhite < 0.98 else 0 
+    return hasLoops
 
 
-    #generate blured representation
-    pixels = datum.getPixels()
-    blurred = [[1 for _ in range(DIGIT_DATUM_WIDTH)]] * DIGIT_DATUM_HEIGHT
-    for x in range(DIGIT_DATUM_WIDTH - 1):
-      for y in range(DIGIT_DATUM_HEIGHT - 1):
-        value = (pixels[y][x] + pixels[y+1][x] + pixels[y][x+1] + pixels[y+1][x+1])
-        blurred[y][x] = 1 if value >= 4 else 0
-        features["blurred" + str(x) + "," + str(y)] = blurred[y][x]
-
+def getAspectRatio(bb):
     #get aspect ratio and bounding box
-    minx = float("inf")
-    miny = float("inf")
-    maxx = float("-inf")
-    maxy = float("-inf")
-    for x in range(DIGIT_DATUM_WIDTH):
-      for y in range(DIGIT_DATUM_HEIGHT):
-        if pixels[y][x] == 1:
-          minx = min(minx, x)
-          miny = min(miny, y)
-          maxx = max(maxx, x)
-          maxy = max(maxy, y)
+    minx = bb["minx"]
+    miny = bb["miny"]
+    maxx = bb["maxx"]
+    maxy = bb["maxy"]
     totalwidth = max(maxx - minx,1)
     totalheight = max(maxy - miny,1)
-    features["aspectratio"] = (1.0 * totalheight) / totalwidth
+    return (1.0 * totalheight) / totalwidth
 
 
+def getBoundingBox(datum):
+  bb = util.Counter()
+  minx = float("inf")
+  miny = float("inf")
+  maxx = float("-inf")
+  maxy = float("-inf")
+  for x in range(DIGIT_DATUM_WIDTH):
+    for y in range(DIGIT_DATUM_HEIGHT):
+      if datum.getPixel(x,y) >= 1:
+        minx = min(minx, x)
+        miny = min(miny, y)
+        maxx = max(maxx, x)
+        maxy = max(maxy, y)
+  bb["minx"] = minx
+  bb["miny"] = miny
+  bb["maxx"] = maxx
+  bb["maxy"] = maxy
+  return bb
 
 
-    return features
+def blackInTop(datum, bb, totalblack):
+    minx = bb["minx"]
+    miny = bb["miny"]
+    maxx = bb["maxx"]
+    maxy = bb["maxy"]
+    top = 0.0
+    for x in range(minx, maxx + 1):
+      for y in range(miny, (miny + maxy)/2):
+        if datum.getPixel(x,y) > 0:
+          top += 1 
+    return top / totalblack
+
+def blackInLeft(datum, bb, totalblack):     
+    minx = bb["minx"]
+    miny = bb["miny"]
+    maxx = bb["maxx"]
+    maxy = bb["maxy"]  
+    left = 0.0
+    for x in range(minx, (minx + maxx)/2):
+      for y in range(miny, maxy + 1):
+        if datum.getPixel(x,y) > 0:
+          left += 1 
+    return left / totalblack
 
 
-
-
-def enhancedFeatureExtractorDigit(datum):
+def enhancedFeatureExtractorDigitOld(datum):
     """
     Your feature extraction playground.
 
