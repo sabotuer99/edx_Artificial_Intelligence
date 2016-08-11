@@ -80,7 +80,66 @@ def floodfill(x, y, datum, tracker):
     if y < DIGIT_DATUM_HEIGHT - 1:
       floodfill(x, y + 1, datum, tracker)
     
-    
+def enhancedFeatureExtractorDigitScratch(datum):
+    """
+    Your feature extraction playground.
+
+    You should return a util.Counter() of features
+    for this datum (datum is of type samples.Datum).
+
+    ## DESCRIBE YOUR ENHANCED FEATURES HERE...
+
+    ##
+    """
+
+    #Get basic features
+    features = basicFeatureExtractorDigit(datum)
+
+    #Get count of filled pixels
+    blackcount = features.totalCount()
+
+    #use floodfill to count all the whitespace surrounding the character
+    #if the flood fill whitespace is less than 98% of the total whitespace (allows for noise),
+    #then there are loops in the figure
+    whitespace = util.Counter()
+    floodfill(0,0,datum,whitespace)
+    totalwhite = DIGIT_DATUM_HEIGHT * DIGIT_DATUM_WIDTH - blackcount 
+    hasLoops = 1 if 1.0 * whitespace.totalCount()/totalwhite < 0.98 else 0    
+    features["hasLoops"] = hasLoops
+
+
+    #generate blured representation
+    pixels = datum.getPixels()
+    blurred = [[1 for _ in range(DIGIT_DATUM_WIDTH)]] * DIGIT_DATUM_HEIGHT
+    for x in range(DIGIT_DATUM_WIDTH - 1):
+      for y in range(DIGIT_DATUM_HEIGHT - 1):
+        value = (pixels[y][x] + pixels[y+1][x] + pixels[y][x+1] + pixels[y+1][x+1])
+        blurred[y][x] = 1 if value >= 4 else 0
+        features["blurred" + str(x) + "," + str(y)] = blurred[y][x]
+
+    #get aspect ratio and bounding box
+    minx = float("inf")
+    miny = float("inf")
+    maxx = float("-inf")
+    maxy = float("-inf")
+    for x in range(DIGIT_DATUM_WIDTH):
+      for y in range(DIGIT_DATUM_HEIGHT):
+        if pixels[y][x] == 1:
+          minx = min(minx, x)
+          miny = min(miny, y)
+          maxx = max(maxx, x)
+          maxy = max(maxy, y)
+    totalwidth = max(maxx - minx,1)
+    totalheight = max(maxy - miny,1)
+    features["aspectratio"] = (1.0 * totalheight) / totalwidth
+
+
+
+
+    return features
+
+
+
 
 def enhancedFeatureExtractorDigit(datum):
     """
@@ -108,6 +167,11 @@ def enhancedFeatureExtractorDigit(datum):
     minthickness = float("inf")
     maxthickness = float("-inf")
     
+    leftprobe = [0 for _ in range(DIGIT_DATUM_WIDTH)]
+    rightprobe = [0 for _ in range(DIGIT_DATUM_WIDTH)]
+    topprobe = [0 for _ in range(DIGIT_DATUM_HEIGHT)]
+    bottomprobe = [0 for _ in range(DIGIT_DATUM_HEIGHT)]
+
     for x in range(DIGIT_DATUM_WIDTH):
       bestsofar = 0
       currentline = 0
@@ -143,7 +207,10 @@ def enhancedFeatureExtractorDigit(datum):
             features["block2_" + str(x) + "," + str(y)] = darkness 
             blocktransitions += 1 if darkness == lastblock else 0
             lastblock = darkness
-              
+
+      bottomprobe[x] = DIGIT_DATUM_HEIGHT if firstblack == None else lastblack
+      topprobe[x] = 0 if firstblack == None else firstblack      
+
       features["height"+ str(x)] = 0 if firstblack == None else lastblack - firstblack
       features["transitions"+ str(x)] = transitions
       features["maxcol_" + str(x)] = bestsofar 
@@ -175,6 +242,9 @@ def enhancedFeatureExtractorDigit(datum):
       features["maxrow_" + str(y)] = bestsofar
       minthickness = min(bestsofar, minthickness)
       maxthickness = max(bestsofar, maxthickness)
+      leftprobe[y] = DIGIT_DATUM_WIDTH if firstblack == None else firstblack
+      rightprobe[y] = 0 if firstblack == None else lastblack
+
  
     features["strokediff"] = (maxthickness - minthickness)
     features["strokediff2"] = (maxthickness - minthickness) ** 2
@@ -196,24 +266,27 @@ def enhancedFeatureExtractorDigit(datum):
     
     bottom = 0.0
     for x in range(minx, maxx + 1):
-      for y in range(miny, maxy/2):
+      for y in range(miny, (miny + maxy)/2):
         if datum.getPixel(x,y) > 0:
           bottom += 1 
           
     left = 0.0
-    for x in range(minx, maxx/2):
+    for x in range(minx, (miny + maxx)/2):
       for y in range(miny, maxy + 1):
         if datum.getPixel(x,y) > 0:
           left += 1 
 
-    #features["totalheight"] = totalheight
-    #features["totalwidth"] = totalwidth
+    """
+    features["totalheight"] = totalheight
+    features["totalwidth"] = totalwidth
     features["blackinbottom"] = bottom / totalblack
     features["blackinleft"] = left / totalblack
+
     features["shiftvert"] = averagey - (maxy + miny)/2
     features["shifthorz"] = averagex - (maxx + minx)/2
     features["totalblack"] = totalblack
-    
+    """
+
     totalwhite = DIGIT_DATUM_HEIGHT * DIGIT_DATUM_WIDTH - totalblack
       
     hasLoops = 1 if 1.0 * whitespace.totalCount()/totalwhite < 0.98 else 0    
@@ -224,12 +297,52 @@ def enhancedFeatureExtractorDigit(datum):
     features["hasLoops"] = hasLoops
     
     
+    #count peaks
+    leftpeaks = 0
+    rightpeaks = 0
+    toppeaks = 0
+    bottompeaks = 0
+
+    breadth = 2
+    for x in range(breadth, DIGIT_DATUM_WIDTH - breadth):
+      features["leftprobe" + str(x)] = leftprobe[x]
+      features["rightprobe" + str(x)] = rightprobe[x]
+
+      leftpeaks += 1 if leftprobe[x] > leftprobe[x-breadth] and leftprobe[x] > leftprobe[x+breadth] else 0
+      rightpeaks += 1 if rightprobe[x] < rightprobe[x-breadth] and rightprobe[x] < rightprobe[x+breadth] else 0
+
+    for y in range(breadth, DIGIT_DATUM_HEIGHT - breadth):
+      features["topprobe" + str(y)] = topprobe[y]
+      features["bottomprobe" + str(y)] = bottomprobe[y]
+
+      toppeaks += 1 if topprobe[y] < topprobe[y-breadth] and topprobe[y] < topprobe[y+breadth] else 0
+      bottompeaks += 1 if bottomprobe[y] > bottomprobe[y-breadth] and bottomprobe[y] > bottomprobe[y+breadth] else 0
+
+    features["leftpeaks"] = leftpeaks
+    features["rightpeaks"] = rightpeaks
+    features["toppeaks"] = toppeaks
+    features["bottompeaks"] = bottompeaks
+
+    """
+    if leftpeaks > 0:
+      print leftpeaks
+      print datum
     
+    print "COMPARE"
+    print datum
+    for i in range(DIGIT_DATUM_HEIGHT):
+      print "#" * leftprobe[i]
+
+    for i in range(DIGIT_DATUM_HEIGHT):
+      print " " * rightprobe[i] + "#" * (DIGIT_DATUM_HEIGHT - rightprobe[i])
+    """
+
+
     #features["blackinfirstcolband"] = 1.0 * blackinfirstcolband / totalblack
     #features["blackinmidcolband"] = 1.0 * blackinmidcolband / totalblack
     #features["blackinlastcolband"] = 1.0 * blackinlastcolband / totalblack
-    features["averagey"] = averagey / totalblack
-    features["averagex"] = averagex / totalblack
+    #features["averagey"] = averagey / totalblack
+    #features["averagex"] = averagex / totalblack
     features["aspectratio"] = (1.0 * totalheight) / totalwidth
 
 
