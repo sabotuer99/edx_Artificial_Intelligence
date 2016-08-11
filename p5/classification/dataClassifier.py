@@ -64,6 +64,24 @@ def basicFeatureExtractorFace(datum):
                 features[(x,y)] = 0
     return features
 
+def floodfill(x, y, datum, tracker):
+    if tracker[(x,y)] == 1:
+      return
+    if datum.getPixel(x,y) > 0:
+      return
+    tracker[(x,y)] = 1
+    
+    if x > 0:
+      floodfill(x - 1, y, datum, tracker)
+    if x < DIGIT_DATUM_WIDTH - 1:
+      floodfill(x + 1, y, datum, tracker)
+    if y > 0:
+      floodfill(x, y - 1, datum, tracker)    
+    if y < DIGIT_DATUM_HEIGHT - 1:
+      floodfill(x, y + 1, datum, tracker)
+    
+    
+
 def enhancedFeatureExtractorDigit(datum):
     """
     Your feature extraction playground.
@@ -75,10 +93,184 @@ def enhancedFeatureExtractorDigit(datum):
 
     ##
     """
-    features =  basicFeatureExtractorDigit(datum)
+    #a = datum.getPixels()
+    
 
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    whitespace = util.Counter()
+    floodfill(0,0,datum,whitespace)
+
+    averagex = 0.0
+    averagey = 0.0
+
+    features = util.Counter()
+    totalblack = 0
+    
+    minthickness = float("inf")
+    maxthickness = float("-inf")
+    
+    for x in range(DIGIT_DATUM_WIDTH):
+      bestsofar = 0
+      currentline = 0
+      transitions = 0
+      last_pixel = None
+      blocktransitions = 0
+      lastblock = None
+      firstblack = None
+      lastblack = None
+      for y in range(DIGIT_DATUM_HEIGHT):
+          if datum.getPixel(x, y) > 0:
+              features[(x,y)] = 1
+              averagey += y
+              currentline += 1
+              transitions += 1 if last_pixel == 1 else 0
+              last_pixel = 0
+              if firstblack == None:
+                firstblack = y
+              lastblack = y 
+              totalblack += 1 
+          else:
+              features[(x,y)] = 0
+              bestsofar = max(bestsofar, currentline)
+              currentline = 0
+              transitions += 1 if last_pixel == 0 else 0
+              last_pixel = 1  
+          
+          if x < DIGIT_DATUM_WIDTH - 1 and y < DIGIT_DATUM_HEIGHT - 1:
+            darkness = 0.0
+            for xp in range(2):
+              for yp in range(2):
+                darkness += 1 if datum.getPixel(x + xp, y + yp) > 0 else 0
+            features["block2_" + str(x) + "," + str(y)] = darkness 
+            blocktransitions += 1 if darkness == lastblock else 0
+            lastblock = darkness
+              
+      features["height"+ str(x)] = 0 if firstblack == None else lastblack - firstblack
+      features["transitions"+ str(x)] = transitions
+      features["maxcol_" + str(x)] = bestsofar 
+    
+    for y in range(DIGIT_DATUM_HEIGHT):
+      bestsofar = 0
+      currentline = 0
+      transitions = 0
+      last_pixel = None
+      firstblack = None
+      lastblack = None
+      for x in range(DIGIT_DATUM_WIDTH):
+          if datum.getPixel(x, y) > 0:
+              averagex += x
+              currentline += 1
+              transitions += 1 if last_pixel == 1 else 0
+              last_pixel = 0
+              if firstblack == None:
+                firstblack = x
+              lastblack = x  
+          else:
+              bestsofar = max(bestsofar, currentline)
+              currentline = 0
+              transitions += 1 if last_pixel == 0 else 0
+              last_pixel = 1
+              
+      features["width"+ str(y)] = 0 if firstblack == None else lastblack - firstblack
+      features["transitions"+ str(y)] = transitions 
+      features["maxrow_" + str(y)] = bestsofar
+      minthickness = min(bestsofar, minthickness)
+      maxthickness = max(bestsofar, maxthickness)
+ 
+    features["strokediff"] = (maxthickness - minthickness)
+    features["strokediff2"] = (maxthickness - minthickness) ** 2
+ 
+    minx = float("inf")
+    miny = float("inf")
+    maxx = float("-inf")
+    maxy = float("-inf")
+    for x in range(DIGIT_DATUM_WIDTH):
+      for y in range(DIGIT_DATUM_HEIGHT):
+        if datum.getPixel(x,y) > 0:
+          minx = min(minx, x)
+          miny = min(miny, y)
+          maxx = max(maxx, x)
+          maxy = max(maxy, y)         
+    
+    totalwidth = maxx - minx
+    totalheight = maxy - miny     
+    
+    bottom = 0.0
+    for x in range(minx, maxx + 1):
+      for y in range(miny, maxy/2):
+        if datum.getPixel(x,y) > 0:
+          bottom += 1 
+          
+    left = 0.0
+    for x in range(minx, maxx/2):
+      for y in range(miny, maxy + 1):
+        if datum.getPixel(x,y) > 0:
+          left += 1 
+
+    #features["totalheight"] = totalheight
+    #features["totalwidth"] = totalwidth
+    features["blackinbottom"] = bottom / totalblack
+    features["blackinleft"] = left / totalblack
+    features["shiftvert"] = averagey - (maxy + miny)/2
+    features["shifthorz"] = averagex - (maxx + minx)/2
+    features["totalblack"] = totalblack
+    
+    totalwhite = DIGIT_DATUM_HEIGHT * DIGIT_DATUM_WIDTH - totalblack
+      
+    hasLoops = 1 if 1.0 * whitespace.totalCount()/totalwhite < 0.98 else 0    
+    
+    #if hasLoops == 1:
+    #  print datum
+    
+    features["hasLoops"] = hasLoops
+    
+    
+    
+    #features["blackinfirstcolband"] = 1.0 * blackinfirstcolband / totalblack
+    #features["blackinmidcolband"] = 1.0 * blackinmidcolband / totalblack
+    #features["blackinlastcolband"] = 1.0 * blackinlastcolband / totalblack
+    features["averagey"] = averagey / totalblack
+    features["averagex"] = averagex / totalblack
+    features["aspectratio"] = (1.0 * totalheight) / totalwidth
+
+
+    """
+    width = DIGIT_DATUM_WIDTH/5
+    height = DIGIT_DATUM_HEIGHT/5
+    for _x in range(width):
+      for _y in range(height):
+        x = _x * 5
+        y = _y * 5
+        count = 0.0
+        for i in range(width):
+          for j in range(height):
+            count += 1 if datum.getPixel(x + i, y + j) > 0 else 0
+        features["concentration" + str(x) + "," + str(y)] = count / totalblack
+    
+
+    
+    for _x in range(DIGIT_DATUM_WIDTH - 6):
+      for _y in range(DIGIT_DATUM_HEIGHT - 6):
+        grid = [[0,0,0]] * 3
+        for x in range(3):
+          for y in range(3):
+            ul = 1 if datum.getPixel(_x + x * 2, _y + y * 2) > 0 else 0
+            ur = 1 if datum.getPixel(_x + x * 2 + 1, _y + y * 2) > 0 else 0
+            ll = 1 if datum.getPixel(_x + x * 2, _y + y * 2 + 1) > 0 else 0
+            lr = 1 if datum.getPixel(_x + x * 2 + 1, _y + y * 2 + 1) > 0 else 0
+            grid[x][y] = 1 if ul + ur + ll + lr > 2 else 0
+            
+        features["vertgrade" + str(x) + "," + str(y)] = 1 if (grid[0][0] + grid[1][0] + grid[2][0] == 3 or 
+                                                              grid[0][1] + grid[1][1] + grid[2][1] == 3 or 
+                                                              grid[0][2] + grid[1][2] + grid[2][2] == 3 ) else 0
+        features["horzgrade" + str(x) + "," + str(y)] = 1 if (grid[0][0] + grid[0][1] + grid[0][2] == 3 or
+                                                              grid[1][0] + grid[1][1] + grid[1][2] == 3 or
+                                                              grid[2][0] + grid[2][1] + grid[2][2] == 3 ) else 0
+        features["diag1grade" + str(x) + "," + str(y)] = 1 if (grid[0][0] + grid[1][1] + grid[2][2] == 3 and
+                                                               grid[2][0] + grid[0][2] == 0) else 0
+        features["diag2grade" + str(x) + "," + str(y)] = 1 if (grid[2][0] + grid[1][1] + grid[0][2] == 3 and
+                                                               grid[0][0] + grid[2][2] == 0) else 0
+        features["corner" + str(x) + "," + str(y)] = 1 if (grid[0][0] + grid[0][2] + grid[2][2] + grid[2][0] == 3) else 0
+    """
 
     return features
 
@@ -166,16 +358,17 @@ def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
 
     # Put any code here...
     # Example of use:
-    # for i in range(len(guesses)):
-    #     prediction = guesses[i]
-    #     truth = testLabels[i]
-    #     if (prediction != truth):
-    #         print "==================================="
-    #         print "Mistake on example %d" % i
-    #         print "Predicted %d; truth is %d" % (prediction, truth)
-    #         print "Image: "
-    #         print rawTestData[i]
-    #         break
+    """
+    for i in range(len(guesses)):
+        prediction = guesses[i]
+        truth = testLabels[i]
+        if (prediction != truth):
+            print "==================================="
+            print "Mistake on example %d" % i
+            print "Predicted %d; truth is %d" % (prediction, truth)
+            print "Image: "
+            print rawTestData[i]
+    """
 
 
 ## =====================
