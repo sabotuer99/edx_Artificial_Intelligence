@@ -858,8 +858,9 @@ def readCommand( argv ):
         else:
             print "using default C=0.001 for MIRA"
     elif(options.classifier == 'minicontest'):
-        import minicontest
-        classifier = minicontest.contestClassifier(legalLabels)
+        #import minicontest
+        #classifier = minicontest.contestClassifier(legalLabels)
+        pass
     else:
         print "Unknown classifier:", options.classifier
         print USAGE_STRING
