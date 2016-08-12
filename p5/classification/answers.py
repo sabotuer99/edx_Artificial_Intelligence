@@ -14,4 +14,4 @@
 
 def q2():
     "*** YOUR CODE HERE ***"
-    return 'b'
+    return 'a'
